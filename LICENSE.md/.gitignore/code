@@ -1,0 +1,134 @@
+import numpy as np
+
+print("若干次的猜拳游戏，通过输入1,2,3键分别选择石头，剪刀，布。")
+print("同时机器也会自己选择，力求赢得多数回合")
+print()
+turns=input("首先，选择对战回合数。建议40局。对战回合越多，机器对你的出招套路就越了解，那么你输掉的概率就越大")
+turns=int(turns)
+print("游戏开始")
+
+def comparison(human_guess,pc_guess):
+    if human_guess==1:
+        if pc_guess==1:
+            result="draw"
+        elif pc_guess==2:
+            result ="win"
+        elif pc_guess==3:
+            result ="lose"
+    elif human_guess==2:
+        if pc_guess==1:
+            result="lose"
+        elif pc_guess==2:
+            result ="draw"
+        elif pc_guess==3:
+            result ="win"
+    elif human_guess == 3:
+        if pc_guess==1:
+            result="win"
+        elif pc_guess==2:
+            result ="lose"
+        elif pc_guess==3:
+            result ="draw"
+    return(result)
+
+def transform(number):
+    if number==1:
+        trick="石头"
+    elif number==2:
+        trick="剪刀"
+    elif number==3:
+        trick="布"
+    return(trick)
+
+#贝叶斯条件后验概率矩阵
+def discrete_forecasting(hist):
+    # 概率1
+    unique, counts = np.unique(hist, return_counts=True)
+    p1 = counts
+    alpha = 0.01
+    p1 = p1 + alpha
+    p1 = p1 / np.sum(p1)
+
+    if len(hist) > 4:
+        # 前三局作为试水，收集初步数据，三局之后开始建立概率模型
+        # 概率2
+        forward_number = 3
+        col_name = list(range(1, 4, 1))
+        row_name = list((a + b + c) for a in range(100, 400, 100) for b in range(10, 40, 10) for c in range(1, 4, 1))
+        # 频率矩阵
+        count_matrix = np.matrix(np.zeros([len(row_name), 3]))
+        list_row = []
+        list_col = []
+        for i in range(3, len(hist), 1):
+            row_ind = int(str(int(hist[i - 3])) + str(int(hist[i - 2])) + str(int(hist[i - 1])))
+            col_ind = (hist[i])
+            list_row.append(row_ind)
+            list_col.append(col_ind)
+            count_matrix[row_name.index(row_ind), col_name.index(col_ind)] += 1
+        # 概率矩阵
+        beta = 0.01
+        count_matrix += beta
+        prob_matrix = np.matrix(np.zeros([len(row_name), 3]))
+        for i in range(len(row_name)):
+            prob_matrix[i,] = (count_matrix[i, :] / np.sum(count_matrix[i, :]))
+
+        # 条件后验概率,两种概率相乘
+        cond_prob = np.matrix(np.zeros([len(row_name), 3]))
+        for i in range(len(col_name)):
+            cond_prob[:, i] = (prob_matrix[:, i] * p1[i])
+        for i in range(len(row_name)):
+            cond_prob[i, :] = (cond_prob[i, :] / np.sum(cond_prob[i, :]))
+
+        # 计算出概率之后，根据当前状况预测对手下一步出招概率
+        current_condition = hist[-3] * 100 + hist[-2] * 10 + hist[-1]
+        current_prob = cond_prob[row_name.index(current_condition), :]
+        human_choice = current_prob.argmax() + 1
+    else:
+        human_choice = np.random.randint(low=1, high=4, size=1)
+
+    if human_choice == 1:
+        pc_choice = 3
+        pc_choice0 = "布"
+    elif human_choice == 2:
+        pc_choice = 1
+        pc_choice0 = "石头"
+    elif human_choice == 3:
+        pc_choice = 2
+        pc_choice0 = "剪刀"
+
+    return (pc_choice, pc_choice0)
+
+list_guess=np.zeros((2,turns))
+list_result=[]
+hist=[]
+hist=np.array(hist)
+for i in range(turns):
+    print("==========================================","回合",i+1)
+    temp = input("石头=1，剪刀=2，布=3，请选择其一与电脑对战")
+
+    if temp not in ["1","2","3"]:
+        cont=0
+        print("输入有误")
+    else:
+        cont=1
+    while cont==0:
+        temp = input("重新输入：石头=1，剪刀=2，布=3，请选择其一与电脑对战")
+        if temp in ["1","2","3"]:
+            cont=1
+
+    human_guess = int(temp)
+    hist=np.append(hist,human_guess)
+    pc_guess,pc_guess0 = discrete_forecasting(hist)
+    print("你选择",human_guess,transform(human_guess)," 机器选择",pc_guess,pc_guess0)
+    result=comparison(human_guess,pc_guess)
+    print(result)
+    list_guess[0,i],list_guess[1,i]= human_guess,pc_guess
+    list_result.append(result)
+    print("==========================================")
+
+print("猜拳结束")
+print("你和机器的出招结果")
+print(list_guess)
+print("输赢结果")
+print(list_result)
+print( np.unique(list_result, return_counts=True))
