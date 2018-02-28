@@ -1,5 +1,5 @@
 import numpy as np
-
+#本算法是根据人的前三次出招序列，以及总体出招频率计算的后验条件概率。但如果让对手知道了这种概率构建依据，反而会被对手利用而导致失败
 print("若干次的猜拳游戏，通过输入1,2,3键分别选择石头，剪刀，布。")
 print("同时机器也会自己选择，力求赢得多数回合")
 print()
@@ -44,11 +44,12 @@ def transform(number):
 def discrete_forecasting(hist):
     # 概率1
     unique, counts = np.unique(hist, return_counts=True)
-    p1 = counts
+    p1 = np.array([0, 0, 0])
+    for i in range(3):
+        p1[i] = sum(hist == (i + 1))
     alpha = 0.01
     p1 = p1 + alpha
     p1 = p1 / np.sum(p1)
-
     if len(hist) > 4:
         # 前三局作为试水，收集初步数据，三局之后开始建立概率模型
         # 概率2
@@ -103,6 +104,7 @@ list_result=[]
 hist=[]
 hist=np.array(hist)
 for i in range(turns):
+    pc_guess, pc_guess0 = discrete_forecasting(hist)
     print("==========================================","回合",i+1)
     temp = input("石头=1，剪刀=2，布=3，请选择其一与电脑对战")
 
@@ -118,7 +120,7 @@ for i in range(turns):
 
     human_guess = int(temp)
     hist=np.append(hist,human_guess)
-    pc_guess,pc_guess0 = discrete_forecasting(hist)
+
     print("你选择",human_guess,transform(human_guess)," 机器选择",pc_guess,pc_guess0)
     result=comparison(human_guess,pc_guess)
     print(result)
@@ -132,3 +134,4 @@ print(list_guess)
 print("输赢结果")
 print(list_result)
 print( np.unique(list_result, return_counts=True))
+
